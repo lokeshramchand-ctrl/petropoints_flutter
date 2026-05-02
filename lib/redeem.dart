@@ -6,22 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// THEME
-// ─────────────────────────────────────────────────────────────────────────────
-
-class T {
-  static const bg       = Color(0xFFF8FAFC);
-  static const surface  = Color(0xFFFFFFFF);
-  static const navy     = Color(0xFF0F172A);
-  static const muted    = Color(0xFF64748B);
-  static const faint    = Color(0xFFCBD5E1);
-  static const primary  = Color(0xFFF97316);
-  static const danger   = Color(0xFFDC2626);
-  static const successT = Color(0xFF166534);
-  static const successB = Color(0xFFDCFCE7);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // REDEEM SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -117,11 +101,10 @@ class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
   void _toast(String msg, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-      backgroundColor: error ? T.danger : T.successT,
+      content: Text(msg),
+      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
       behavior: SnackBarBehavior.floating,
-      shape: const RoundedRectangleBorder(),
-      margin: const EdgeInsets.all(20),
+      duration: const Duration(seconds: 3),
     ));
   }
 
@@ -130,30 +113,168 @@ class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: T.bg,
+      backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildPageTitle(),
-                const SizedBox(height: 36),
-                _buildMobileField(),
+                // Page title
+                const Text(
+                  'Redeem Points',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Deduct points from a customer account.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 24),
+
+                // Mobile field
+                _SimpleField(
+                  label: 'Mobile Number',
+                  hint: '10-digit mobile number',
+                  controller: _mobileCtrl,
+                  keyboardType: TextInputType.number,
+                  enabled: !_fetching && !_loading,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                ),
+
+                // Customer info card
                 if (_matched != null) ...[
-                  const SizedBox(height: 20),
-                  _buildCustomerCard(),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
+                    child: Column(children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Name',
+                              style: TextStyle(fontSize: 13, color: Colors.grey)),
+                          Text(
+                            _matched?['CustomerName'] ?? '—',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Balance',
+                              style: TextStyle(fontSize: 13, color: Colors.grey)),
+                          Text(
+                            '$_currentPoints pts',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ]),
+                  ),
                 ],
-                const SizedBox(height: 20),
-                _buildPointsField(),
+
+                const SizedBox(height: 16),
+
+                // Points field
+                _SimpleField(
+                  label: 'Points to Redeem',
+                  hint: 'e.g. 50',
+                  controller: _pointsCtrl,
+                  keyboardType: TextInputType.number,
+                  enabled: _matched != null && !_loading,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+
+                // Insufficient warning
                 if (_insufficient) ...[
-                  const SizedBox(height: 10),
-                  _buildInsufficientWarning(),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.warning_amber_rounded,
+                          size: 15, color: Colors.red.shade700),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Insufficient balance',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ]),
+                  ),
                 ],
-                const SizedBox(height: 28),
-                _buildRedeemButton(),
+
+                const SizedBox(height: 24),
+
+                // Redeem button
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: _canRedeem ? _redeem : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1976D2),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFFBDBDBD),
+                      disabledForegroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            'Confirm & Redeem',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -161,269 +282,72 @@ class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
       ),
     );
   }
-
-  // ── Sections ───────────────────────────────────────────────────────────────
-
-  Widget _buildPageTitle() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Redeem Points',
-          style: TextStyle(
-            fontSize: 30, fontWeight: FontWeight.w800,
-            color: T.navy, letterSpacing: -0.8,
-          )),
-      const SizedBox(height: 6),
-      const Text('Deduct points from a customer account.',
-          style: TextStyle(fontSize: 14, color: T.muted)),
-      const SizedBox(height: 20),
-      Container(height: 1, color: T.faint),
-    ]);
-  }
-
-  Widget _buildMobileField() {
-    return _Field(
-      label: 'Mobile Number',
-      child: _Input(
-        controller: _mobileCtrl,
-        hint: '10-digit mobile number',
-        keyboardType: TextInputType.number,
-        enabled: !_fetching && !_loading,
-        formatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(10),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCustomerCard() {
-    return AnimatedOpacity(
-      opacity: _matched != null ? 1 : 0,
-      duration: const Duration(milliseconds: 200),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: T.surface,
-          border: Border.all(color: T.faint),
-          borderRadius: BorderRadius.circular(2),
-        ),
-        child: Column(children: [
-          _InfoRow(
-            label: 'Name',
-            value: _matched?['CustomerName'] ?? '—',
-          ),
-          const SizedBox(height: 14),
-          _InfoRow(
-            label: 'Balance',
-            value: '$_currentPoints pts',
-            valueStyle: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: T.navy,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildPointsField() {
-    return _Field(
-      label: 'Points to Redeem',
-      child: _Input(
-        controller: _pointsCtrl,
-        hint: 'e.g. 50',
-        keyboardType: TextInputType.number,
-        enabled: _matched != null && !_loading,
-        formatters: [FilteringTextInputFormatter.digitsOnly],
-      ),
-    );
-  }
-
-  Widget _buildInsufficientWarning() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      color: const Color(0xFFFEF2F2),
-      child: Row(children: [
-        const Icon(Icons.warning_amber_rounded, size: 15, color: T.danger),
-        const SizedBox(width: 8),
-        const Text('Insufficient balance',
-            style: TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600, color: T.danger,
-            )),
-      ]),
-    );
-  }
-
-  Widget _buildRedeemButton() {
-    return _RedeemBtn(
-      canRedeem: _canRedeem,
-      loading: _loading,
-      onTap: _redeem,
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SMALL WIDGETS
+// REUSABLE WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Field extends StatelessWidget {
+class _SimpleField extends StatelessWidget {
   final String label;
-  final Widget child;
-  const _Field({required this.label, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w700,
-            color: T.muted, letterSpacing: 1.2,
-          )),
-      const SizedBox(height: 8),
-      child,
-    ]);
-  }
-}
-
-class _Input extends StatelessWidget {
-  final TextEditingController controller;
   final String hint;
+  final TextEditingController controller;
   final TextInputType keyboardType;
   final bool enabled;
-  final List<TextInputFormatter> formatters;
+  final List<TextInputFormatter> inputFormatters;
 
-  const _Input({
-    required this.controller,
+  const _SimpleField({
+    required this.label,
     required this.hint,
+    required this.controller,
     required this.keyboardType,
     required this.enabled,
-    required this.formatters,
+    required this.inputFormatters,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: enabled ? T.surface : const Color(0xFFF1F5F9),
-        border: Border.all(color: T.faint),
-      ),
-      child: Focus(
-        child: Builder(builder: (ctx) {
-          final focused = Focus.of(ctx).hasFocus;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: focused ? T.primary : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: TextField(
-              controller: controller,
-              keyboardType: keyboardType,
-              inputFormatters: formatters,
-              enabled: enabled,
-              style: const TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w500, color: T.navy,
-              ),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(color: T.faint, fontWeight: FontWeight.w400),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final TextStyle? valueStyle;
-
-  const _InfoRow({required this.label, required this.value, this.valueStyle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: const TextStyle(
-              fontSize: 13, color: T.muted, fontWeight: FontWeight.w500,
-            )),
-        Text(value,
-            style: valueStyle ??
-                const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: T.navy,
-                )),
-      ],
-    );
-  }
-}
-
-class _RedeemBtn extends StatefulWidget {
-  final bool canRedeem;
-  final bool loading;
-  final VoidCallback onTap;
-  const _RedeemBtn({required this.canRedeem, required this.loading, required this.onTap});
-
-  @override
-  State<_RedeemBtn> createState() => _RedeemBtnState();
-}
-
-class _RedeemBtnState extends State<_RedeemBtn> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = widget.canRedeem;
-
-    return GestureDetector(
-      onTapDown: active ? (_) => setState(() => _pressed = true) : null,
-      onTapUp: active ? (_) { setState(() => _pressed = false); widget.onTap(); } : null,
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 80),
-        transform: _pressed ? (Matrix4.identity()..translate(1.0, 1.0)) : Matrix4.identity(),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: active ? T.primary : T.faint,
-          borderRadius: BorderRadius.circular(2),
-          boxShadow: active && !_pressed
-              ? const [BoxShadow(color: Color(0xFFEA580C), offset: Offset(0, 3), blurRadius: 0)]
-              : [],
-        ),
-        child: Center(
-          child: widget.loading
-              ? const SizedBox(
-                  width: 18, height: 18,
-                  child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2.5,
-                  ),
-                )
-              : Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.check_rounded,
-                      color: active ? Colors.white : T.muted, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Confirm & Redeem',
-                    style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700,
-                      color: active ? Colors.white : T.muted,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ]),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF333333),
         ),
       ),
-    );
+      const SizedBox(height: 6),
+      TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        enabled: enabled,
+        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: Color(0xFFDDDDDD)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: Color(0xFFDDDDDD)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: Color(0xFF1976D2)),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
+          ),
+          filled: true,
+          fillColor: enabled ? Colors.white : const Color(0xFFF5F5F5),
+        ),
+      ),
+    ]);
   }
 }
