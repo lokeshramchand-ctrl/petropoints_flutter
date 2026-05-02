@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -21,44 +20,75 @@ class Customer {
   }
 }
 
-class AppTheme {
-  static const Color bgBody = Color(0xFFF8FAFC);
-  static const Color surface = Colors.white;
-  static const Color primary = Color(0xFF0F766E);
-  static const Color primarySoft = Color(0xFFD9F7F3);
-  static const Color textMain = Color(0xFF0F172A);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color border = Color(0xFFE2E8F0);
-  static const Color success = Color(0xFF166534);
-  static const Color successBg = Color(0xFFE8F5E9);
-  static const Color warning = Color(0xFFB45309);
-  static const Color warningBg = Color(0xFFFFF7ED);
+class T {
+  static const Color bg       = Color(0xFFF1F5F7);
+  static const Color surface  = Color(0xFFFFFFFF);
+  static const Color ink      = Color(0xFF111827);
+  static const Color muted    = Color(0xFF6B7280);
+  static const Color accent   = Color(0xFF0D9488); // teal
+  static const Color accentLt = Color(0xFFCCFBF1);
+  static const Color warn     = Color(0xFFF59E0B);
+  static const Color warnLt   = Color(0xFFFEF3C7);
+  static const Color border   = Color(0xFFE5E7EB);
+  static const Color ok       = Color(0xFF16A34A);
+  static const Color okLt     = Color(0xFFDCFCE7);
 
-  static BoxDecoration cardDecoration() {
-    return BoxDecoration(
-      color: surface,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: border),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x120F172A),
-          blurRadius: 20,
-          offset: Offset(0, 10),
+  // Flat card — single border, tiny shadow only (1 dp — cheap)
+  static BoxDecoration card({Color? color}) => BoxDecoration(
+        color: color ?? surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border, width: 1),
+        boxShadow: const [
+          BoxShadow(color: Color(0x14000000), blurRadius: 4, offset: Offset(0, 1)),
+        ],
+      );
+}
+
+
+void main() => runApp(const PetroPointsApp());
+
+class PetroPointsApp extends StatelessWidget {
+  const PetroPointsApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'PetroPoints',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: T.accent),
+        scaffoldBackgroundColor: T.bg,
+        fontFamily: 'Roboto', // bundled on every Android — zero extra memory
+        appBarTheme: const AppBarTheme(
+          backgroundColor: T.surface,
+          foregroundColor: T.ink,
+          surfaceTintColor: T.surface,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: T.ink,
+            letterSpacing: -0.3,
+          ),
         ),
-      ],
+      ),
+      home: const DashboardScreen(),
     );
   }
 }
 
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
-
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  static const String _apiUrl =
+  static const _apiUrl =
       'https://petropoints-backend.deploy.splsystems.in/api/read';
 
   List<Customer> _customers = [];
@@ -72,402 +102,225 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchData() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+    setState(() { _loading = true; _error = null; });
     try {
-      final response = await http.get(Uri.parse(_apiUrl));
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-
-      final List<dynamic> data = json.decode(response.body) as List<dynamic>;
-      if (!mounted) return;
-
-      setState(() {
-        _customers = data
-            .map((item) => Customer.fromJson(item as Map<String, dynamic>))
-            .toList();
-        _loading = false;
-      });
-    } catch (error) {
+      final res = await http.get(Uri.parse(_apiUrl));
+      if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
+      final list = json.decode(res.body) as List<dynamic>;
       if (!mounted) return;
       setState(() {
-        _error = error.toString();
+        _customers = list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();
         _loading = false;
       });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
-  int get totalCustomers => _customers.length;
-  int get totalPoints =>
-      _customers.fold(0, (sum, customer) => sum + customer.points);
-  int get activeCustomers =>
-      _customers.where((customer) => customer.points > 0).length;
-  int get zeroCustomers =>
-      _customers.where((customer) => customer.points == 0).length;
-  List<Customer> get recentCustomers => _customers.take(6).toList();
+  // ── Derived values ──
+  int get _total   => _customers.length;
+  int get _active  => _customers.where((c) => c.points > 0).length;
+  int get _zero    => _customers.where((c) => c.points == 0).length;
+  int get _pts     => _customers.fold(0, (s, c) => s + c.points);
+  List<Customer> get _recent => _customers.take(6).toList();
 
+  // ── Build ──
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgBody,
+      backgroundColor: T.bg,
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
-        surfaceTintColor: AppTheme.surface,
-        elevation: 0,
-        titleSpacing: 20,
-        title: const Text(
-          'PetroPoints',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textMain,
-          ),
+        title: Row(
+          children: [
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(color: T.accent, borderRadius: BorderRadius.circular(6)),
+              child: const Icon(Icons.local_gas_station_rounded, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 8),
+            const Text('PetroPoints'),
+          ],
         ),
         actions: [
           IconButton(
-            onPressed: _fetchData,
-            icon: const Icon(Icons.refresh_rounded),
-            color: AppTheme.textMain,
+            icon: const Icon(Icons.refresh_rounded, size: 22),
             tooltip: 'Refresh',
+            onPressed: _fetchData,
           ),
-          const SizedBox(width: 8),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: T.border),
+        ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(strokeWidth: 2.5))
           : _error != null
-          ? _ErrorState(message: _error!, onRetry: _fetchData)
-          : SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final maxWidth = constraints.maxWidth > 1100
-                      ? 1100.0
-                      : constraints.maxWidth;
-                  return Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _HeaderCard(
-                              totalCustomers: totalCustomers,
-                              totalPoints: totalPoints,
-                              onRefresh: _fetchData,
-                            ),
-                            const SizedBox(height: 16),
-                            _StatsGrid(
-                              totalCustomers: totalCustomers,
-                              activeCustomers: activeCustomers,
-                              totalPoints: totalPoints,
-                              zeroCustomers: zeroCustomers,
-                            ),
-                            const SizedBox(height: 16),
-                            _SectionCard(
-                              title: 'Recent Customers',
-                              subtitle:
-                                  '${recentCustomers.length} latest entries',
-                              child: recentCustomers.isEmpty
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(20),
-                                      child: Text(
-                                        'No customer data yet.',
-                                        style: TextStyle(
-                                          color: AppTheme.textMuted,
-                                        ),
-                                      ),
-                                    )
-                                  : GridView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount:
-                                                constraints.maxWidth >= 900
-                                                ? 2
-                                                : constraints.maxWidth >= 600
-                                                ? 2
-                                                : 1,
-                                            crossAxisSpacing: 12,
-                                            mainAxisSpacing: 12,
-                                            childAspectRatio:
-                                                constraints.maxWidth < 600
-                                                ? 2.9
-                                                : 3.4,
-                                          ),
-                                      itemCount: recentCustomers.length,
-                                      itemBuilder: (context, index) {
-                                        return _CustomerCard(
-                                          customer: recentCustomers[index],
-                                        );
-                                      },
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+              ? _ErrorView(message: _error!, onRetry: _fetchData)
+              : _Body(
+                  total: _total,
+                  active: _active,
+                  zero: _zero,
+                  pts: _pts,
+                  recent: _recent,
+                ),
     );
   }
 }
 
-class _HeaderCard extends StatelessWidget {
-  final int totalCustomers;
-  final int totalPoints;
-  final VoidCallback onRefresh;
+class _Body extends StatelessWidget {
+  final int total, active, zero, pts;
+  final List<Customer> recent;
 
-  const _HeaderCard({
-    required this.totalCustomers,
-    required this.totalPoints,
-    required this.onRefresh,
+  const _Body({
+    required this.total,
+    required this.active,
+    required this.zero,
+    required this.pts,
+    required this.recent,
   });
 
   @override
   Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
+      // ListView is lazy — much cheaper than SingleChildScrollView + Column for long lists
+      children: [
+        // ── Summary banner ──
+        _SummaryBanner(total: total, pts: pts),
+        const SizedBox(height: 12),
+
+        // ── Stats row (2 × 2 grid) ──
+        _StatsGrid(total: total, active: active, pts: pts, zero: zero),
+        const SizedBox(height: 16),
+
+        // ── Section header ──
+        _SectionHeader(title: 'Recent Customers', count: recent.length),
+        const SizedBox(height: 8),
+
+        // ── Customer list ──
+        if (recent.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('No customer data yet.',
+                style: TextStyle(color: T.muted, fontSize: 13)),
+          )
+        else
+          ...recent.map((c) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _CustomerTile(customer: c),
+              )),
+      ],
+    );
+  }
+}
+
+class _SummaryBanner extends StatelessWidget {
+  final int total, pts;
+  const _SummaryBanner({required this.total, required this.pts});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: AppTheme.cardDecoration(),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stacked = constraints.maxWidth < 640;
-          if (stacked) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: T.card(color: T.accent),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Simple customer dashboard',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppTheme.textMain,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'A clean view of customer points with a layout that works well on any screen size.',
-                  style: TextStyle(color: AppTheme.textMuted, height: 1.4),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _MiniPill(
-                      label: '$totalCustomers customers',
-                      color: AppTheme.primarySoft,
-                      textColor: AppTheme.primary,
-                    ),
-                    _MiniPill(
-                      label: '$totalPoints points',
-                      color: AppTheme.warningBg,
-                      textColor: AppTheme.warning,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextButton.icon(
-                  onPressed: onRefresh,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Refresh'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
+                const Text('Dashboard',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text('$total customers · ${_fmt(pts)} pts',
+                    style: const TextStyle(
+                        color: Color(0xCCFFFFFF), fontSize: 12)),
               ],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Simple customer dashboard',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: AppTheme.textMain,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'A clean view of customer points with a layout that works well on any screen size.',
-                      style: TextStyle(color: AppTheme.textMuted, height: 1.4),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        _MiniPill(
-                          label: '$totalCustomers customers',
-                          color: AppTheme.primarySoft,
-                          textColor: AppTheme.primary,
-                        ),
-                        _MiniPill(
-                          label: '$totalPoints points',
-                          color: AppTheme.warningBg,
-                          textColor: AppTheme.warning,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              TextButton.icon(
-                onPressed: onRefresh,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Refresh'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 14,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+          const Icon(Icons.stars_rounded, color: Colors.white, size: 28),
+        ],
       ),
     );
   }
 }
+
 
 class _StatsGrid extends StatelessWidget {
-  final int totalCustomers;
-  final int activeCustomers;
-  final int totalPoints;
-  final int zeroCustomers;
-
-  const _StatsGrid({
-    required this.totalCustomers,
-    required this.activeCustomers,
-    required this.totalPoints,
-    required this.zeroCustomers,
-  });
+  final int total, active, pts, zero;
+  const _StatsGrid(
+      {required this.total,
+      required this.active,
+      required this.pts,
+      required this.zero});
 
   @override
   Widget build(BuildContext context) {
-    final stats = [
-      _StatTile(
-        title: 'Total Customers',
-        value: totalCustomers.toString(),
-        icon: Icons.people_alt_rounded,
-      ),
-      _StatTile(
-        title: 'Active Customers',
-        value: activeCustomers.toString(),
-        icon: Icons.verified_rounded,
-      ),
-      _StatTile(
-        title: 'Total Points',
-        value: _formatNumber(totalPoints),
-        icon: Icons.stars_rounded,
-      ),
-      _StatTile(
-        title: 'Zero Points',
-        value: zeroCustomers.toString(),
-        icon: Icons.remove_circle_outline_rounded,
-      ),
+    final items = [
+      _StatItem(Icons.people_alt_rounded,    'Total',   total.toString(),    T.accentLt, T.accent),
+      _StatItem(Icons.verified_rounded,      'Active',  active.toString(),   T.okLt,     T.ok),
+      _StatItem(Icons.stars_rounded,         'Points',  _fmt(pts),           T.warnLt,   T.warn),
+      _StatItem(Icons.remove_circle_outline, 'No Pts',  zero.toString(),     T.border,   T.muted),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth >= 900
-            ? 4
-            : constraints.maxWidth >= 600
-            ? 2
-            : 1;
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: stats.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.7,
-          ),
-          itemBuilder: (context, index) => stats[index],
-        );
-      },
+    // 2-column grid using Row + Expanded — no GridView overhead
+    return Column(
+      children: [
+        Row(children: [
+          Expanded(child: items[0]),
+          const SizedBox(width: 10),
+          Expanded(child: items[1]),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: items[2]),
+          const SizedBox(width: 10),
+          Expanded(child: items[3]),
+        ]),
+      ],
     );
   }
 }
 
-class _StatTile extends StatelessWidget {
-  final String title;
-  final String value;
+class _StatItem extends StatelessWidget {
   final IconData icon;
+  final String label, value;
+  final Color bg, fg;
 
-  const _StatTile({
-    required this.title,
-    required this.value,
-    required this.icon,
-  });
+  const _StatItem(this.icon, this.label, this.value, this.bg, this.fg);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: AppTheme.cardDecoration(),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: T.card(),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppTheme.primarySoft,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: AppTheme.primary),
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: fg, size: 18),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  value,
+                      fontSize: 11, color: T.muted, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 2),
+              Text(value,
                   style: const TextStyle(
-                    fontSize: 26,
-                    color: AppTheme.textMain,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                  ),
-                ),
-              ],
-            ),
+                      fontSize: 20,
+                      color: T.ink,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1)),
+            ],
           ),
         ],
       ),
@@ -475,274 +328,156 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _SectionCard extends StatelessWidget {
+// ─── Section Header ───────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
   final String title;
-  final String subtitle;
-  final Widget child;
-
-  const _SectionCard({
-    required this.title,
-    required this.subtitle,
-    required this.child,
-  });
+  final int count;
+  const _SectionHeader({required this.title, required this.count});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: AppTheme.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textMain,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: child,
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Text(title,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: T.ink)),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+              color: T.accentLt, borderRadius: BorderRadius.circular(99)),
+          child: Text('$count',
+              style: const TextStyle(
+                  fontSize: 11, color: T.accent, fontWeight: FontWeight.w700)),
+        ),
+      ],
     );
   }
 }
 
-class _CustomerCard extends StatelessWidget {
-  final Customer customer;
+// ─── Customer Tile ────────────────────────────────────────────────────────────
 
-  const _CustomerCard({required this.customer});
+class _CustomerTile extends StatelessWidget {
+  final Customer customer;
+  const _CustomerTile({required this.customer});
 
   @override
   Widget build(BuildContext context) {
-    final hasPoints = customer.points > 0;
-
+    final has = customer.points > 0;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: T.card(),
       child: Row(
         children: [
+          // Avatar circle
           Container(
-            width: 44,
-            height: 44,
+            width: 38, height: 38,
             decoration: BoxDecoration(
-              color: hasPoints ? AppTheme.primarySoft : AppTheme.warningBg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.person_rounded,
-              color: hasPoints ? AppTheme.primary : AppTheme.warning,
+                color: has ? T.accentLt : T.warnLt, shape: BoxShape.circle),
+            child: Center(
+              child: Text(
+                _initials(customer.name),
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: has ? T.accent : T.warn),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
+          // Name + ID
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  customer.name,
-                  style: const TextStyle(
-                    color: AppTheme.textMain,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  customer.id,
-                  style: const TextStyle(
-                    color: AppTheme.textMuted,
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                Text(customer.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: T.ink)),
+                Text(customer.id,
+                    style: const TextStyle(fontSize: 11, color: T.muted)),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          _PointsChip(points: customer.points),
+          const SizedBox(width: 8),
+          // Points pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+                color: has ? T.okLt : T.border,
+                borderRadius: BorderRadius.circular(99)),
+            child: Text(
+              has ? '+${customer.points}' : '0',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: has ? T.ok : T.muted),
+            ),
+          ),
         ],
       ),
     );
   }
-}
 
-class _PointsChip extends StatelessWidget {
-  final int points;
-
-  const _PointsChip({required this.points});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasPoints = points > 0;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: hasPoints ? AppTheme.successBg : AppTheme.warningBg,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        hasPoints ? '+$points' : '0',
-        style: TextStyle(
-          color: hasPoints ? AppTheme.success : AppTheme.warning,
-          fontWeight: FontWeight.w700,
-          fontSize: 13,
-        ),
-      ),
-    );
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 }
 
-class _MiniPill extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color textColor;
+// ─── Error View ───────────────────────────────────────────────────────────────
 
-  const _MiniPill({
-    required this.label,
-    required this.color,
-    required this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
+class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
-
-  const _ErrorState({required this.message, required this.onRetry});
+  const _ErrorView({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Container(
-          width: 440,
-          padding: const EdgeInsets.all(20),
-          decoration: AppTheme.cardDecoration(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.error_outline_rounded,
-                size: 44,
-                color: AppTheme.warning,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Could not load data',
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded, size: 42, color: T.muted),
+            const SizedBox(height: 12),
+            const Text('Could not load data',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textMain,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
+                    fontSize: 16, fontWeight: FontWeight.w700, color: T.ink)),
+            const SizedBox(height: 6),
+            Text(message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppTheme.textMuted),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
+                style: const TextStyle(color: T.muted, fontSize: 12)),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Retry'),
+              style: FilledButton.styleFrom(backgroundColor: T.accent),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-String _formatNumber(int value) {
-  final text = value.toString();
-  final buffer = StringBuffer();
-  for (var index = 0; index < text.length; index++) {
-    if (index > 0 && (text.length - index) % 3 == 0) {
-      buffer.write(',');
-    }
-    buffer.write(text[index]);
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+String _fmt(int n) {
+  final s = n.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+    buf.write(s[i]);
   }
-  return buffer.toString();
-}
-
-void main() {
-  runApp(const PetroPointsApp());
-}
-
-class PetroPointsApp extends StatelessWidget {
-  const PetroPointsApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PetroPoints',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppTheme.primary),
-        scaffoldBackgroundColor: AppTheme.bgBody,
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          backgroundColor: AppTheme.surface,
-          foregroundColor: AppTheme.textMain,
-        ),
-      ),
-      home: const DashboardScreen(),
-    );
-  }
+  return buf.toString();
 }

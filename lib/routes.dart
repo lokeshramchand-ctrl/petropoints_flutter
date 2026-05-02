@@ -5,7 +5,7 @@ import 'package:petropoints/homepage.dart';
 
 class AppRoutes {
   static const String grantPoints = '/award';
-  static const String dashboard = '/dashboard';
+  static const String dashboard = '/DashboardScreen';
   static const String customers = '/customers';
   static const String redeem = '/redeem';
 }
