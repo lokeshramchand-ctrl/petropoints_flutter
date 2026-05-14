@@ -19,7 +19,7 @@ class RedeemPointsScreen extends StatefulWidget {
 class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
   static const _api = 'https://petropoints-backend.deploy.splsystems.in/api';
 
-  List<dynamic> _customers = [];
+List<Map<String, dynamic>> _customers = [];
   bool _fetching = true;
   bool _loading  = false;
 
@@ -27,17 +27,13 @@ class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
   final _pointsCtrl = TextEditingController();
 
   Map<String, dynamic>? get _matched {
-  try {
-    final customer = _customers.firstWhere(
-      (c) => c['CustomerMobile']?.toString() == _mobileCtrl.text,
-    );
-
-    return Map<String, dynamic>.from(customer);
-  } catch (_) {
-    return null;
+  for (final c in _customers) {
+    if (c['CustomerMobile']?.toString() == _mobileCtrl.text) {
+      return c;
+    }
   }
+  return null;
 }
-
   int get _currentPoints => int.tryParse(_matched?['CustomerPoints']?.toString() ?? '0') ?? 0;
   int get _toRedeem      => int.tryParse(_pointsCtrl.text) ?? 0;
   bool get _insufficient => _matched != null && _toRedeem > _currentPoints;
@@ -59,18 +55,25 @@ class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
     super.dispose();
   }
 
-  Future<void> _loadCustomers() async {
-    try {
-      final res = await http.get(Uri.parse('$_api/read'));
-      if (res.statusCode == 200) {
-        setState(() => _customers = json.decode(res.body));
-      }
-    } catch (_) {
-      _toast('Failed to load customers', error: true);
-    } finally {
-      setState(() => _fetching = false);
+Future<void> _loadCustomers() async {
+  try {
+    final res = await http.get(Uri.parse('$_api/read'));
+
+    if (res.statusCode == 200) {
+      final List data = json.decode(res.body);
+
+      setState(() {
+        _customers = data
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      });
     }
+  } catch (_) {
+    _toast('Failed to load customers', error: true);
+  } finally {
+    setState(() => _fetching = false);
   }
+}
 
   Future<void> _redeem() async {
     if (!_canRedeem) return;
