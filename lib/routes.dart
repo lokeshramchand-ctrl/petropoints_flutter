@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:petropoints/dashboard.dart';
-import 'package:petropoints/award_points.dart';
-import 'package:petropoints/redeem_points.dart';
-import 'package:petropoints/customers.dart';
-import 'package:petropoints/homepage.dart';
+import 'package:petropoints/screens/dashboard.dart';
+import 'package:petropoints/screens/award_points.dart';
+import 'package:petropoints/screens/redeem_points.dart';
+import 'package:petropoints/screens/customers.dart';
+import 'package:petropoints/screens/homepage.dart';
 
 class AppRoutes {
   static const String dashboard = '/dashboard';
