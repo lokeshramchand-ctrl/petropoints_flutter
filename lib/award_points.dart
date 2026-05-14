@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
-class GrantPointsScreen extends StatefulWidget {
-  const GrantPointsScreen({super.key});
+class AwardPointsScreen extends StatefulWidget {
+  const AwardPointsScreen({super.key});
 
   @override
-  State<GrantPointsScreen> createState() => _GrantPointsScreenState();
+  State<AwardPointsScreen> createState() => _AwardPointsScreenState();
 }
 
-class _GrantPointsScreenState extends State<GrantPointsScreen> {
+class _AwardPointsScreenState extends State<AwardPointsScreen> {
   static const _api = 'https://petropoints-backend.deploy.splsystems.in/api';
 
 List<Map<String, dynamic>> _customers = [];

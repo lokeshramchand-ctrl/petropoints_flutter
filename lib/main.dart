@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-
 import 'package:petropoints/routes.dart';
-
 void main() {
   runApp(const MyApp());
 }
@@ -13,11 +11,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-
-      // STARTING PAGE
-      initialRoute: AppRoutes.dashboard,
-
-      // ROUTE HANDLER
+      initialRoute: AppRoutes.homepage,
       onGenerateRoute: RouteGenerator.generateRoute,
     );
   }

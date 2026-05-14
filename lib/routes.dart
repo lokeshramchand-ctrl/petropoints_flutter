@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'package:petropoints/dashboard.dart';
-import 'package:petropoints/awards.dart';
-import 'package:petropoints/redeem.dart';
-import 'package:petropoints/customer.dart';
+import 'package:petropoints/award_points.dart';
+import 'package:petropoints/redeem_points.dart';
+import 'package:petropoints/customers.dart';
 import 'package:petropoints/homepage.dart';
 
 class AppRoutes {
   static const String dashboard = '/dashboard';
-  static const String grantPoints = '/award';
+  static const String awardPoints = '/award';
   static const String customers = '/customers';
   static const String redeem = '/redeem';
   static const String homepage = '/homepage';
@@ -23,8 +23,8 @@ class RouteGenerator {
       case AppRoutes.dashboard:
         return MaterialPageRoute(builder: (_) => const DashboardScreen());
 
-      case AppRoutes.grantPoints:
-        return MaterialPageRoute(builder: (_) => const GrantPointsScreen());
+      case AppRoutes.awardPoints:
+        return MaterialPageRoute(builder: (_) => const AwardPointsScreen());
 
       case AppRoutes.redeem:
         return MaterialPageRoute(builder: (_) => const RedeemPointsScreen());

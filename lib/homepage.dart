@@ -31,15 +31,14 @@ class HomepageScreen extends StatelessWidget {
 
               children: [
 
-                // GRANT POINTS
                 _DashboardBlock(
-                  title: 'Grant Points',
+                  title: 'Award Points',
                   icon: Icons.add_circle_outline,
                   color: const Color(0xFF1976D2),
                   onTap: () {
                     Navigator.pushNamed(
                       context,
-                      AppRoutes.grantPoints,
+                      AppRoutes.awardPoints,
                     );
                   },
                 ),
