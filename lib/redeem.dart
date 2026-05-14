@@ -19,25 +19,27 @@ class RedeemPointsScreen extends StatefulWidget {
 class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
   static const _api = 'https://petropoints-backend.deploy.splsystems.in/api';
 
-List<Map<String, dynamic>> _customers = [];
+  List<Map<String, dynamic>> _customers = [];
   bool _fetching = true;
-  bool _loading  = false;
+  bool _loading = false;
 
   final _mobileCtrl = TextEditingController();
   final _pointsCtrl = TextEditingController();
 
   Map<String, dynamic>? get _matched {
-  for (final c in _customers) {
-    if (c['CustomerMobile']?.toString() == _mobileCtrl.text) {
-      return c;
+    for (final c in _customers) {
+      if (c['CustomerMobile']?.toString() == _mobileCtrl.text) {
+        return c;
+      }
     }
+    return null;
   }
-  return null;
-}
-  int get _currentPoints => int.tryParse(_matched?['CustomerPoints']?.toString() ?? '0') ?? 0;
-  int get _toRedeem      => int.tryParse(_pointsCtrl.text) ?? 0;
+
+  int get _currentPoints =>
+      int.tryParse(_matched?['CustomerPoints']?.toString() ?? '0') ?? 0;
+  int get _toRedeem => int.tryParse(_pointsCtrl.text) ?? 0;
   bool get _insufficient => _matched != null && _toRedeem > _currentPoints;
-  bool get _canRedeem    =>
+  bool get _canRedeem =>
       _matched != null && _toRedeem > 0 && !_insufficient && !_loading;
 
   @override
@@ -55,25 +57,23 @@ List<Map<String, dynamic>> _customers = [];
     super.dispose();
   }
 
-Future<void> _loadCustomers() async {
-  try {
-    final res = await http.get(Uri.parse('$_api/read'));
+  Future<void> _loadCustomers() async {
+    try {
+      final res = await http.get(Uri.parse('$_api/read'));
 
-    if (res.statusCode == 200) {
-      final List data = json.decode(res.body);
+      if (res.statusCode == 200) {
+        final List data = json.decode(res.body);
 
-      setState(() {
-        _customers = data
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-      });
+        setState(() {
+          _customers = data.map((e) => Map<String, dynamic>.from(e)).toList();
+        });
+      }
+    } catch (_) {
+      _toast('Failed to load customers', error: true);
+    } finally {
+      setState(() => _fetching = false);
     }
-  } catch (_) {
-    _toast('Failed to load customers', error: true);
-  } finally {
-    setState(() => _fetching = false);
   }
-}
 
   Future<void> _redeem() async {
     if (!_canRedeem) return;
@@ -89,11 +89,13 @@ Future<void> _loadCustomers() async {
 
       if (res.statusCode == 200) {
         setState(() {
-          _customers = _customers.map((c) =>
-            c['CustomerID'] == _matched!['CustomerID']
-              ? {...c, 'CustomerPoints': newPoints}
-              : c,
-          ).toList();
+          _customers = _customers
+              .map(
+                (c) => c['CustomerID'] == _matched!['CustomerID']
+                    ? {...c, 'CustomerPoints': newPoints}
+                    : c,
+              )
+              .toList();
         });
         _mobileCtrl.clear();
         _pointsCtrl.clear();
@@ -110,12 +112,14 @@ Future<void> _loadCustomers() async {
 
   void _toast(String msg, {bool error = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 3),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? Colors.red.shade700 : Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -168,45 +172,60 @@ Future<void> _loadCustomers() async {
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: const Color(0xFFE0E0E0)),
                     ),
-                    child: Column(children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Name',
-                              style: TextStyle(fontSize: 13, color: Colors.grey)),
-                          Text(
-                            _matched?['CustomerName'] ?? '—',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF1A1A1A),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Name',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Balance',
-                              style: TextStyle(fontSize: 13, color: Colors.grey)),
-                          Text(
-                            '$_currentPoints pts',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1A1A1A),
+                            Text(
+                              _matched?['CustomerName'] ?? '—',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF1A1A1A),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ]),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Balance',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Text(
+                              '$_currentPoints pts',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
 
@@ -227,25 +246,33 @@ Future<void> _loadCustomers() async {
                   const SizedBox(height: 8),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.shade50,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Colors.red.shade200),
                     ),
-                    child: Row(children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 15, color: Colors.red.shade700),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Insufficient balance',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 15,
                           color: Colors.red.shade700,
                         ),
-                      ),
-                    ]),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Insufficient balance',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
 
@@ -317,47 +344,52 @@ class _SimpleField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(
-        label,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF333333),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF333333),
+          ),
         ),
-      ),
-      const SizedBox(height: 6),
-      TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
-        enabled: enabled,
-        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFDDDDDD)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          enabled: enabled,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(color: Color(0xFFDDDDDD)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(color: Color(0xFFDDDDDD)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(color: Color(0xFF1976D2)),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(6),
+              borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
+            ),
+            filled: true,
+            fillColor: enabled ? Colors.white : const Color(0xFFF5F5F5),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFDDDDDD)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFF1976D2)),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: const BorderSide(color: Color(0xFFEEEEEE)),
-          ),
-          filled: true,
-          fillColor: enabled ? Colors.white : const Color(0xFFF5F5F5),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 }
