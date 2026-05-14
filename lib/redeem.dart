@@ -26,10 +26,17 @@ class _RedeemPointsScreenState extends State<RedeemPointsScreen> {
   final _mobileCtrl = TextEditingController();
   final _pointsCtrl = TextEditingController();
 
-  Map<String, dynamic>? get _matched => _customers.firstWhere(
-    (c) => c['CustomerMobile']?.toString() == _mobileCtrl.text,
-    orElse: () => null,
-  );
+  Map<String, dynamic>? get _matched {
+  try {
+    final customer = _customers.firstWhere(
+      (c) => c['CustomerMobile']?.toString() == _mobileCtrl.text,
+    );
+
+    return Map<String, dynamic>.from(customer);
+  } catch (_) {
+    return null;
+  }
+}
 
   int get _currentPoints => int.tryParse(_matched?['CustomerPoints']?.toString() ?? '0') ?? 0;
   int get _toRedeem      => int.tryParse(_pointsCtrl.text) ?? 0;
