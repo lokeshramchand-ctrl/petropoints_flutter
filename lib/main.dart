@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:petropoints/customer.dart';
-import 'package:petropoints/redeem.dart';
+import 'package:petropoints/awards.dart';
 // import 'package:petropoints/homepage.dart';
 
 void main() {
@@ -17,8 +17,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       // home: const DashboardScreen(),
       // home: const CustomersScreen(),
-      home: const RedeemPointsScreen(),
-      // home: const GrantPointsScreen(),
+      // home: const RedeemPointsScreen(),
+      home: const GrantPointsScreen(),
     );
   }
 }

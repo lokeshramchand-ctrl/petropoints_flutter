@@ -19,17 +19,21 @@ class GrantPointsScreen extends StatefulWidget {
 class _GrantPointsScreenState extends State<GrantPointsScreen> {
   static const _api = 'https://petropoints-backend.deploy.splsystems.in/api';
 
-  List<dynamic> _customers = [];
+List<Map<String, dynamic>> _customers = [];
   bool _fetching = true;
   bool _loading  = false;
 
   final _mobileCtrl = TextEditingController();
   final _pointsCtrl = TextEditingController();
 
-  Map<String, dynamic>? get _matched => _customers.firstWhere(
-    (c) => c['CustomerMobile']?.toString() == _mobileCtrl.text,
-    orElse: () => null,
-  );
+Map<String, dynamic>? get _matched {
+  for (final c in _customers) {
+    if (c['CustomerMobile']?.toString() == _mobileCtrl.text) {
+      return c;
+    }
+  }
+  return null;
+}
 
   int get _currentPoints => int.tryParse(_matched?['CustomerPoints']?.toString() ?? '0') ?? 0;
   int get _toAdd         => int.tryParse(_pointsCtrl.text) ?? 0;
@@ -59,18 +63,24 @@ class _GrantPointsScreenState extends State<GrantPointsScreen> {
   }
 
   Future<void> _loadCustomers() async {
-    try {
-      final res = await http.get(Uri.parse('$_api/read'));
-      if (res.statusCode == 200) {
-        setState(() => _customers = json.decode(res.body));
-      }
-    } catch (_) {
-      _toast('Failed to load customers', error: true);
-    } finally {
-      setState(() => _fetching = false);
-    }
-  }
+  try {
+    final res = await http.get(Uri.parse('$_api/read'));
 
+    if (res.statusCode == 200) {
+      final List data = json.decode(res.body);
+
+      setState(() {
+        _customers = data
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      });
+    }
+  } catch (_) {
+    _toast('Failed to load customers', error: true);
+  } finally {
+    setState(() => _fetching = false);
+  }
+}
   Future<void> _award() async {
     if (!_canAward) return;
     setState(() => _loading = true);
